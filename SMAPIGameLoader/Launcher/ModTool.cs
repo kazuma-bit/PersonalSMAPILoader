@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -16,9 +16,7 @@ internal static class ModTool
         {
             if (!Directory.Exists(rootDirPath)) return;
 
-            //search current only 1
             var manifestFilePath = Path.Combine(rootDirPath, ManifiestFileName);
-            //assert manifest file invalid path
             if (rootDirPath != ModsDir)
             {
                 if (Path.Exists(manifestFilePath))
@@ -28,7 +26,6 @@ internal static class ModTool
                 }
             }
 
-            //search with next folder
             var folders = Directory.GetDirectories(rootDirPath);
             foreach (var folderPath in folders)
             {
@@ -39,6 +36,21 @@ internal static class ModTool
         {
             Console.WriteLine(ex);
         }
+    }
 
+    public static string SetModEnabled(string modFolderPath, bool enabled)
+    {
+        var parentDir = Path.GetDirectoryName(modFolderPath);
+        var folderName = Path.GetFileName(modFolderPath);
+        var isCurrentlyEnabled = !folderName.StartsWith(".");
+
+        if (isCurrentlyEnabled == enabled)
+            return modFolderPath;
+
+        var newFolderName = enabled ? folderName.Substring(1) : "." + folderName;
+        var newFolderPath = Path.Combine(parentDir, newFolderName);
+
+        Directory.Move(modFolderPath, newFolderPath);
+        return newFolderPath;
     }
 }
