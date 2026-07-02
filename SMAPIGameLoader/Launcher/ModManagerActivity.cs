@@ -61,29 +61,38 @@ internal class ModManagerActivity : AppCompatActivity
     }
 
     void RefreshMods()
+{
+    mods.Clear();
+
+    try
     {
-        mods.Clear();
-
-        try
+        var manifestFiles = new List<string>();
+        Console.WriteLine("Start Refresh Mods..");
+        ModTool.FindManifestFile(ModTool.ModsDir, manifestFiles);
+        for (int i = 0; i < manifestFiles.Count; i++)
         {
-            var manifestFiles = new List<string>();
-            Console.WriteLine("Start Refresh Mods..");
-            ModTool.FindManifestFile(ModTool.ModsDir, manifestFiles);
-            for (int i = 0; i < manifestFiles.Count; i++)
-            {
-                var mod = new ModItemView(manifestFiles[i], i);
-                mods.Add(mod);
-            }
-        }
-        catch (Exception ex)
-        {
-            ErrorDialogTool.Show(ex);
+            var mod = new ModItemView(manifestFiles[i], i);
+            mods.Add(mod);
         }
 
-        modAdapter.RefreshMods();
-        var foundModsText = FindViewById<TextView>(Resource.Id.foundModsText);
-        foundModsText.Text = "Found Mods: " + mods.Count;
+        // sort alphabetically by mod name
+        mods.Sort((a, b) => string.Compare(a.modName, b.modName, StringComparison.OrdinalIgnoreCase));
+
+        // re-number labels to match the new order
+        for (int i = 0; i < mods.Count; i++)
+        {
+            mods[i].NameText = $"[{i + 1}]: {mods[i].modName}";
+        }
     }
+    catch (Exception ex)
+    {
+        ErrorDialogTool.Show(ex);
+    }
+
+    modAdapter.RefreshMods();
+    var foundModsText = FindViewById<TextView>(Resource.Id.foundModsText);
+    foundModsText.Text = "Found Mods: " + mods.Count;
+}
 
     void OnToggleMod(ModItemView mod, bool enabled)
     {
