@@ -1,4 +1,4 @@
-﻿using Android.App;
+using Android.App;
 using Android.OS;
 using Android.Widget;
 
@@ -21,15 +21,12 @@ internal class ModManagerActivity : AppCompatActivity
 {
     protected override void OnCreate(Bundle savedInstanceState)
     {
-        //setup base
         base.OnCreate(savedInstanceState);
         Platform.Init(this, savedInstanceState);
         SetContentView(Resource.Layout.ModManagerLayout);
 
-        //setup my sdk
         ActivityTool.Init(this);//debug
 
-        //ready
         SetupPage();
     }
 
@@ -37,9 +34,9 @@ internal class ModManagerActivity : AppCompatActivity
     List<ModItemView> mods = new();
     void SetupPage()
     {
-        //setup bind
         var modsListView = FindViewById<ListView>(Resource.Id.modsListViews);
         modsListView.Adapter = modAdapter = new ModAdapter(this, mods);
+        modAdapter.OnToggleModCallback = OnToggleMod;
         modsListView.ItemClick += (sender, e) =>
         {
             OnClickModItemView(e);
@@ -55,7 +52,6 @@ internal class ModManagerActivity : AppCompatActivity
 
         FindViewById<Button>(Resource.Id.OpenFolderModsBtn).Click += OnClick_OpenFolderMods;
 
-        //ready
         RefreshMods();
     }
 
@@ -64,10 +60,8 @@ internal class ModManagerActivity : AppCompatActivity
         FileTool.OpenAppFilesExternalFilesDir("Mods");
     }
 
-    // mod folder path with manifest.json inside
     void RefreshMods()
     {
-        //clear first
         mods.Clear();
 
         try
@@ -80,17 +74,29 @@ internal class ModManagerActivity : AppCompatActivity
                 var mod = new ModItemView(manifestFiles[i], i);
                 mods.Add(mod);
             }
-
         }
         catch (Exception ex)
         {
             ErrorDialogTool.Show(ex);
         }
 
-        //refresh
         modAdapter.RefreshMods();
         var foundModsText = FindViewById<TextView>(Resource.Id.foundModsText);
         foundModsText.Text = "Found Mods: " + mods.Count;
+    }
+
+    void OnToggleMod(ModItemView mod, bool enabled)
+    {
+        try
+        {
+            ModTool.SetModEnabled(mod.modFolderPath, enabled);
+            ToastNotifyTool.Notify((enabled ? "Enabled: " : "Disabled: ") + mod.modName);
+        }
+        catch (Exception ex)
+        {
+            ErrorDialogTool.Show(ex, "Error toggling mod: " + mod.modName);
+        }
+        RefreshMods();
     }
 
     void OnClickModItemView(AdapterView.ItemClickEventArgs e)
@@ -121,4 +127,3 @@ internal class ModManagerActivity : AppCompatActivity
         }
     }
 }
-
