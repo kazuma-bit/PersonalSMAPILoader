@@ -156,6 +156,7 @@ public class LauncherActivity : AppCompatActivity
             launcherInfoLines.AppendLine("Discord: Stardew SMAPI Russia (fork)");
             launcherInfoLines.AppendLine("Developer: NRTnarathip, Eky-Team");
             launcherInfoLines.AppendLine("Googleless Patch: IvanKr08");
+            launcherInfoLines.AppendLine("Personal Build: kazuma-bit");
 			launcherInfoLines.AppendLine($"Game Package: {StardewApkTool.CurrentPackageInfo}");
 			launcherInfoLines.AppendLine($"Split Content: {StardewApkTool.IsSplitContent}");
 			launcherInfoLines.AppendLine($"Content Apk Path: {StardewApkTool.ContentApkPath}");
