@@ -9,7 +9,6 @@ using Xamarin.Essentials;
 using AndroidX.AppCompat.App;
 using System.Text;
 
-
 namespace SMAPIGameLoader.Launcher;
 
 [Activity(
@@ -26,7 +25,7 @@ public class LauncherActivity : AppCompatActivity
 
     private static bool IsDeviceSupport => IntPtr.Size == 8;
 
-    protected override void OnCreate(Bundle? savedInstanceState)
+    protected override void OnCreate(Bundle savedInstanceState)
     {
         Instance = this;
         base.OnCreate(savedInstanceState);
@@ -98,7 +97,7 @@ public class LauncherActivity : AppCompatActivity
     private void AssertRequirement()
     {
         //check if 32bit not support
-        if (IsDeviceSupport is false)
+        if (!IsDeviceSupport)
         {
             ToastNotifyTool.Notify("Not support on device 32bit");
             Finish();
@@ -106,14 +105,12 @@ public class LauncherActivity : AppCompatActivity
         }
 
         //Assert Game Requirement
-        if (AssetGameVerify() == false)
+        if (!AssetGameVerify())
         {
             Finish();
             return;
         }
-
     }
-
 
     private void OnReadyToSetupLayoutPage()
     {
@@ -155,9 +152,14 @@ public class LauncherActivity : AppCompatActivity
             //set support game version
             launcherInfoLines.AppendLine($"Support Game Version: {StardewApkTool.GameVersionSupport} Or Later");
             launcherInfoLines.AppendLine("Your Game Version: " + StardewApkTool.CurrentGameVersion);
-            launcherInfoLines.AppendLine("Discord: Stardew SMAPI Thailand");
+            launcherInfoLines.AppendLine("Discord: Stardew SMAPI Thailand (original)");
+            launcherInfoLines.AppendLine("Discord: Stardew SMAPI Russia (fork)");
             launcherInfoLines.AppendLine("Developer: NRTnarathip, Eky-Team");
-
+            launcherInfoLines.AppendLine("Googleless Patch: IvanKr08");
+			launcherInfoLines.AppendLine($"Game Package: {StardewApkTool.CurrentPackageInfo}");
+			launcherInfoLines.AppendLine($"Split Content: {StardewApkTool.IsSplitContent}");
+			launcherInfoLines.AppendLine($"Content Apk Path: {StardewApkTool.ContentApkPath}");
+			
             FindViewById<TextView>(ResourceConstant.Id.launcherInfoTextView).Text = launcherInfoLines.ToString();
 
         }
@@ -176,7 +178,7 @@ public class LauncherActivity : AppCompatActivity
     private void NotifyInstalledSMAPIInfo()
     {
         var smapiInstallInfo = FindViewById<TextView>(ResourceConstant.Id.SMAPIInstallInfoTextView);
-        if (SMAPIInstaller.IsInstalled is false)
+        if (!SMAPIInstaller.IsInstalled)
         {
             smapiInstallInfo.Text = "Please install SMAPI!!";
             return;

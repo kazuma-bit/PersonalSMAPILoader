@@ -1,14 +1,10 @@
-﻿using Octokit;
-using SMAPIGameLoader.Tool;
-using StardewValley.Network;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
+
+using SMAPIGameLoader.Tool;
+
 using Xamarin.Essentials;
 
 namespace SMAPIGameLoader.Launcher;
@@ -17,14 +13,12 @@ internal static class SMAPIInstaller
 {
     public const string GithubOwner = "NRTnarathip";
     public const string GithubRepoName = "SMAPI-Android-1.6";
+
     public static long GetBuildCode()
     {
         try
         {
-            if (IsInstalled is false)
-            {
-                return 0;
-            }
+            if (!IsInstalled) return 0;
 
             using var stream = File.OpenRead(GetInstallFilePath);
             var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream);
@@ -32,7 +26,7 @@ internal static class SMAPIInstaller
             string buildString = SMAPIAndroidBuild.Fields.Single(p => p.Name == "BuildCode").Constant as string;
             return long.Parse(buildString);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             //ErrorDialogTool.Show(ex);
             return 0;
@@ -43,10 +37,7 @@ internal static class SMAPIInstaller
     {
         try
         {
-            if (IsInstalled is false)
-            {
-                return null;
-            }
+            if (!IsInstalled) return null;
 
             using var stream = File.OpenRead(GetInstallFilePath);
             var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream);
@@ -135,8 +126,7 @@ internal static class SMAPIInstaller
     {
         var fileName = pick.FileName;
 
-        if (fileName.EndsWith(".zip") is false)
-            return false;
+        if (!fileName.EndsWith(".zip")) return false;
 
         if (fileName.Contains("SMAPI-Android"))
         {
@@ -152,7 +142,6 @@ internal static class SMAPIInstaller
             return FileTool.ConvertBytesToMB(fileInfo.Length) <= 10;
         }
 
-
         return false;
     }
 
@@ -167,7 +156,7 @@ internal static class SMAPIInstaller
                 return;
 
             //assert SMAPI it's android
-            if (IsSMAPIZipFromPickFile(pick) is false)
+            if (!IsSMAPIZipFromPickFile(pick))
             {
                 DialogTool.Show("SMAPI Installer Error", "Please select file SMAPI-4.x.x.xxxx.zip for Android");
                 return;
