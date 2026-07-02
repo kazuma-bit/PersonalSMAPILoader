@@ -1,8 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 using SMAPIGameLoader.Tool;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -43,7 +44,6 @@ internal static class ModInstaller
             return false;
         }
 
-        //must be 1.6++
         var minGameVersion = GetMinGameVersion(manifest);
         if (minGameVersion != null && minGameVersion < new Version(1, 6, 0))
         {
@@ -51,7 +51,6 @@ internal static class ModInstaller
             return false;
         }
 
-        //check smapi must be 4.0.00++
         var minSMAPIVersion = GetMinSMAPIVersion(manifest);
         if (minSMAPIVersion != null & minSMAPIVersion < new Version(4, 0, 0))
         {
@@ -63,13 +62,10 @@ internal static class ModInstaller
         return true;
     }
 
-    //Install Mod Zip Single, Pack Mods
-    public static void InstallModPackZip(string zipFilePath, ZipArchive zip)
+    public static void InstallModPackZip(string zipFilePath, ZipArchive zip, bool showDialog = true)
     {
-        //extract mod
         ExtractModZipFile(zipFilePath, zip, ModTool.ModsDir);
 
-        //print log
         var entries = zip.Entries;
         var manifestEntires = entries.Where(entry => entry.Name == ModTool.ManifiestFileName).ToArray();
         var logBuilder = new StringBuilder();
@@ -85,41 +81,102 @@ internal static class ModInstaller
             logBuilder.AppendLine($"[{i + 1}]: {dirInfo.Name}");
         }
 
-        DialogTool.Show("Installed Mod Pack", logBuilder.ToString());
+        if (showDialog)
+            DialogTool.Show("Installed Mod Pack", logBuilder.ToString());
     }
+
     public static async void OnClickInstallMod(Action OnInstalledCallback = null)
     {
         try
         {
-            var pickFile = await FilePickerTool.PickZipFile();
-            if (pickFile == null)
+            var pickFiles = await FilePickerTool.PickMultipleZipFiles();
+            if (pickFiles == null || pickFiles.Count == 0)
                 return;
 
-            using var zip = ZipFile.OpenRead(pickFile.FullPath);
-            var entries = zip.Entries;
-            var manifestEntires = entries.Where(entry => entry.Name == ModTool.ManifiestFileName).ToArray();
-            if (manifestEntires.Length == 0)
+            // single file - keep the original detailed per-mod dialog
+            if (pickFiles.Count == 1)
             {
-                ToastNotifyTool.Notify("Not found manifest.json");
+                var installedName = InstallModFromFile(pickFiles[0].FullPath, pickFiles[0].FileName);
+                if (installedName == null)
+                    return;
+
+                OnInstalledCallback?.Invoke();
+                FileTool.ClearCache();
                 return;
             }
 
-            bool isModPack = manifestEntires.Length != 1;
-            if (isModPack)
+            // multiple files - install each, show one summary dialog at the end
+            var installedNames = new List<string>();
+            var failed = new List<string>();
+
+            foreach (var pickFile in pickFiles)
             {
-                InstallModPackZip(pickFile.FullPath, zip);
-                OnInstalledCallback.Invoke();
-                return;
+                try
+                {
+                    var name = InstallModFromFile(pickFile.FullPath, pickFile.FileName, showDialog: false);
+                    if (name != null)
+                        installedNames.Add(name);
+                    else
+                        failed.Add(pickFile.FileName);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                    failed.Add(pickFile.FileName);
+                }
             }
 
-            //try unpack into mods dir
-            var manifestText = ReadManifest(manifestEntires[0]);
-            var manifestJson = JObject.Parse(manifestText);
-            string modName = manifestJson["Name"].ToString();
+            var summary = new StringBuilder();
+            summary.AppendLine($"Installed: {installedNames.Count}/{pickFiles.Count}");
+            foreach (var n in installedNames)
+                summary.AppendLine("✔ " + n);
 
-            ExtractModZipFile(pickFile.FileName, zip, Path.Combine(ModDir));
-            zip.Dispose();
+            if (failed.Count > 0)
+            {
+                summary.AppendLine();
+                summary.AppendLine($"Failed: {failed.Count}");
+                foreach (var n in failed)
+                    summary.AppendLine("✘ " + n);
+            }
 
+            DialogTool.Show("Installed Mods", summary.ToString());
+
+            OnInstalledCallback?.Invoke();
+            FileTool.ClearCache();
+        }
+        catch (Exception ex)
+        {
+            ErrorDialogTool.Show(ex);
+        }
+    }
+
+    // shared logic for installing one zip, used by both the single and batch paths
+    static string InstallModFromFile(string fullPath, string fileName, bool showDialog = true)
+    {
+        using var zip = ZipFile.OpenRead(fullPath);
+        var entries = zip.Entries;
+        var manifestEntires = entries.Where(entry => entry.Name == ModTool.ManifiestFileName).ToArray();
+        if (manifestEntires.Length == 0)
+        {
+            ToastNotifyTool.Notify($"{fileName}: manifest.json not found");
+            return null;
+        }
+
+        bool isModPack = manifestEntires.Length != 1;
+        if (isModPack)
+        {
+            InstallModPackZip(fullPath, zip, showDialog);
+            return fileName;
+        }
+
+        var manifestText = ReadManifest(manifestEntires[0]);
+        var manifestJson = JObject.Parse(manifestText);
+        string modName = manifestJson["Name"].ToString();
+
+        ExtractModZipFile(fileName, zip, Path.Combine(ModDir));
+
+        if (showDialog)
+        {
             var modVersion = manifestJson["Version"].ToString();
             var author = manifestJson["Author"].ToString();
             var modLogBuilder = new StringBuilder();
@@ -135,22 +192,14 @@ internal static class ModInstaller
             if (minSMAPIVersion != null)
                 modLogBuilder.AppendLine($"Minimum SMAPI Version: " + minSMAPIVersion);
 
-
             DialogTool.Show("Installed Mod", modLogBuilder.ToString());
-            OnInstalledCallback?.Invoke();
+        }
 
-            FileTool.ClearCache();
-        }
-        catch (Exception ex)
-        {
-            ErrorDialogTool.Show(ex);
-        }
+        return modName;
     }
+
     public static void ExtractModZipFile(string zipFilePath, ZipArchive zip, string outputDir)
     {
-        //fix bug
-        //if you have file with name == zip.fileNameWithoutExtension
-        //example exist file "SpaceCore" 
         var fileNameNoExtens = new FileInfo(zipFilePath).Name.Replace(".zip", "");
         var checkFileExist = Path.Combine(outputDir, fileNameNoExtens);
         if (File.Exists(checkFileExist))
@@ -175,7 +224,6 @@ internal static class ModInstaller
 
             Directory.Delete(folderPath, true);
 
-            //clean up folder parent if need
             if (cleaupParentFolder)
             {
                 var parentDir = Directory.GetParent(folderPath).FullName;
