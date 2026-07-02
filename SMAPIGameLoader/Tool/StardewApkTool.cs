@@ -1,11 +1,8 @@
 ﻿using Android.App;
 using Android.Content.PM;
-using Android.OS;
+
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SMAPIGameLoader;
 
@@ -13,10 +10,8 @@ internal static class StardewApkTool
 {
     public const string GamePlayStorePackageName = "com.chucklefish.stardewvalley";
     public const string GameGalaxyStorePackageName = "com.chucklefish.stardewvalleysamsung";
-    static bool IsGameFromPlayStore = false;
-    static bool IsGameFromGalaxyStore = false;
-    static PackageInfo _currentPackageInfo;
-
+    public static bool IsSplitContent { get; private set; }
+    
     //init at first SDK
     static StardewApkTool()
     {
@@ -27,42 +22,25 @@ internal static class StardewApkTool
         //select samsung first, better for debug, test app
         if (samsung != null)
         {
-            _currentPackageInfo = samsung;
-            IsGameFromGalaxyStore = true;
+            CurrentPackageInfo = samsung;
             Console.WriteLine("Game Install From Galaxy Store");
         }
         else if (playStore != null)
         {
-            _currentPackageInfo = playStore;
-            IsGameFromPlayStore = true;
+            CurrentPackageInfo = playStore;
             Console.WriteLine("Game Install From Play Store");
+
+			//из-за священной войны с пиратами страдают обычные люди!!!
+            var splitApks = CurrentPackageInfo.ApplicationInfo?.SplitSourceDirs;
+            IsSplitContent = splitApks?.Count > 1;
         }
     }
 
-    public static PackageInfo CurrentPackageInfo => _currentPackageInfo;
-
-    public static bool IsInstalled
-    {
-        get
-        {
-            if (CurrentPackageInfo == null)
-                return false;
-
-            //play store
-            if (IsGameFromPlayStore)
-            {
-                var version = CurrentPackageInfo.VersionName;
-                var splitApks = CurrentPackageInfo.ApplicationInfo?.SplitSourceDirs;
-                return splitApks?.Count == 2;
-            }
-
-            //samsung
-            return true;
-        }
-    }
+    public static PackageInfo CurrentPackageInfo { get; private set; }
+    public static bool IsInstalled { get => CurrentPackageInfo != null; }
 
     public static Android.Content.Context GetContext => Application.Context;
-    public static string? BaseApkPath => CurrentPackageInfo?.ApplicationInfo?.PublicSourceDir;
+    public static string BaseApkPath => CurrentPackageInfo.ApplicationInfo.PublicSourceDir;
     public static string? Arm64ApkPath
     {
         get
@@ -70,12 +48,15 @@ internal static class StardewApkTool
             try
             {
                 if (CurrentPackageInfo == null)
+                {
                     return null;
+                }
 
-                if (IsGameFromPlayStore)
+                if (IsSplitContent)
+                {
                     return CurrentPackageInfo.ApplicationInfo.SplitSourceDirs?.FirstOrDefault(path => path.Contains("split_config.arm64"));
+                }
 
-                // Samsung: assemblies are in the base APK
                 return BaseApkPath;
             }
             catch (Exception ex)
@@ -85,7 +66,6 @@ internal static class StardewApkTool
             }
         }
     }
-
     public static string? ContentApkPath
     {
         get
@@ -93,13 +73,15 @@ internal static class StardewApkTool
             try
             {
                 if (CurrentPackageInfo == null)
+                {
                     return null;
+                }
 
-                //play store
-                if (IsGameFromPlayStore)
+                if (IsSplitContent)
+                {
                     return CurrentPackageInfo.ApplicationInfo.SplitSourceDirs?.First(path => path.Contains("split_content"));
+                }
 
-                //samsung
                 return BaseApkPath;
             }
             catch (Exception ex)
@@ -120,15 +102,15 @@ internal static class StardewApkTool
             switch (CurrentPackageInfo.PackageName)
             {
                 case GamePlayStorePackageName:
-                    return new(1, 6, 15, 3);
+                    return new(1, 6, 15, 0);
                 case GameGalaxyStorePackageName:
-                    return new(1, 6, 15, 3);
+                    return new(1, 6, 15, 0);
                 default:
                     return null;
             }
         }
     }
-    public static Version CurrentGameVersion
+    public static Version CurrentGameVersion 
     {
         get
         {
@@ -136,9 +118,9 @@ internal static class StardewApkTool
             {
                 return new Version(CurrentPackageInfo?.VersionName);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return new Version(0, 0, 0, 0);
+                return new Version(0,0,0,0);
             }
         }
     }
