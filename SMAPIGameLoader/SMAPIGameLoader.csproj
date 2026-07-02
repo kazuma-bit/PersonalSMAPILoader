@@ -3,13 +3,13 @@
 		<TargetFramework>net9.0-android</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<ApplicationId>com.companyname.SMAPIGameLoader</ApplicationId>
-		<SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion>28.0</SupportedOSPlatformVersion>
 		<AndroidSigningKeyStore>debug.keystore</AndroidSigningKeyStore>
 		<PackageIcon>icon.png</PackageIcon>
 		<Version></Version>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>42.1.0</ApplicationDisplayVersion>
+		<ApplicationDisplayVersion>1.1.7</ApplicationDisplayVersion>
 		<ApplicationVersion>$([System.DateTimeOffset]::Now.ToUnixTimeSeconds())</ApplicationVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
