@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 using System;
 using System.IO;
@@ -14,6 +14,7 @@ public class ModItemView
     public readonly string modName = "unknow";
     public readonly string modVersion = "unknow";
     public readonly string modFolderPath = "unknow";
+    public readonly bool IsEnabled = true;
 
     public ModItemView(string manifestFilePath, int modListIndex)
     {
@@ -39,6 +40,7 @@ public class ModItemView
             ErrorDialogTool.Show(ex, "Error try parser mod folder path: " + modFolderPath);
         }
 
+        IsEnabled = !Path.GetFileName(modFolderPath).StartsWith(".");
         NameText = $"[{modListIndex + 1}]: {modName}";
         VersionText = $"Version: {modVersion}";
     }
