@@ -102,9 +102,9 @@ internal static class StardewApkTool
             switch (CurrentPackageInfo.PackageName)
             {
                 case GamePlayStorePackageName:
-                    return new(1, 6, 15, 0);
+                    return new(1, 6, 15, 3);
                 case GameGalaxyStorePackageName:
-                    return new(1, 6, 15, 0);
+                    return new(1, 6, 15, 3);
                 default:
                     return null;
             }
